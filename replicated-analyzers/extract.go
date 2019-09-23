@@ -81,7 +81,7 @@ func processGzip(fName string) (err error) {
 				output[iLoadAve] = fmt.Sprintf("Load average (over 15min): %v sec", loadAve)
 			case "default/commands/df/stdout":
 				diskByte := disk_usage(header, tarReader)
-				output[iDiskUsage] = fmt.Sprintf("Disk Usage: %v byte", diskByte)
+				output[iDiskUsage] = fmt.Sprintf("Disk Usage: %v bytes", diskByte)
 
 			case "default/docker/docker_version.json":
 				val, _ := json_key_val("Version", header, tarReader)
@@ -119,17 +119,21 @@ func load_ave(header *tar.Header, tarReader *tar.Reader) string {
 
 // Disk usage in bytes on the root device
 func disk_usage(header *tar.Header, tarReader *tar.Reader) string {
+	const block_1k = 1024 // usage given in 1k (1024byte) blocks
 	data := tar_data(header, tarReader)
 	overlayLines := match_substring(string(data), "overlay")
 	if len(overlayLines) < 1 {
 		return "" // "overlay" line not found
 	}
 	columns := strings.Fields(overlayLines[0])
-	// Disk usage in column 2
-	if len(columns) < 2 {
-		return "" // data not found
+
+	// Disk usage in column 3
+	disk_used, _ := strconv.Atoi(columns[2])
+	if len(columns) < 3 {
+		return "" // Disk usage data not found
 	}
-	return columns[1]
+	disk_used_bytes := strconv.Itoa(block_1k * disk_used)
+	return disk_used_bytes
 }
 
 // Unmarshal key:value pairs from json file
