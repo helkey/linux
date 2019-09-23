@@ -7,6 +7,26 @@ The Replicated Troubleshoot product enables you to collect information from Kube
   - Docker version
   - Docker storage driver
 
+The file structure where this information is located is:
+```
+default
+  commands
+    df:
+	  stdout: disk free
+	loadavg
+	  loadavg
+        $ 0.26 0.14 0.05 5/233 5186
+	docker
+    docker_info.json
+	  "Driver": "overlay2"
+	  "OSType": "linux"
+	  "OperatingSystem": "Ubuntu 18.04.2 LTS"
+	docker_version.json
+	  "Version": "18.09.6"
+  proc/cpuinfo: processor:0 to processor:3
+      grep processor /proc/cpuinfo | wc -l
+```
+
 The simplest solution processes the data using Bash shell commands, by extracting the data in the shell using `tar`, 
 then finding the relevant items in the extracted files using `grep` and `awk`.
 ```sh
@@ -32,3 +52,8 @@ Disk Usage - 1k blocks: 2050392
 Driver: overlay2
 Docker OS Verson: 18.09.6
 ```
+The Bash approach above is brittle - in relies on the particular file structure that the data is written in.
+A much more a robust approach would be to parse the JSON files, and extract the parameters as key/value pairs.
+
+In addition, extracting user-supplied Tar file to your disk is a security risk, and it would be better to
+extract only the required data while ***.
