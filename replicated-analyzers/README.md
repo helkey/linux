@@ -66,7 +66,7 @@ It is difficult to reliably distribute shell files for data processing, as diffe
 This Bash approach to data extraction also is brittle - it relies on the particular file structure that the data is written in.
 
 ## Go(lang) Data Extraction
-A [more robust solution](https://github.com/helkey/linux/blob/master/replicated-analyzers/README.md) would be to first parse 
+A [more robust solution](https://github.com/helkey/linux/blob/master/replicated-analyzers/extract.go) would be to first parse 
 the JSON files, then extract parameters as key/value pairs. This approach can be written in a modern programming language such as Go, 
 which can be more easily distributed, and which also provides (at least in principal) better error handling, as well as allowing
 better integration with other custom analysis tools.
@@ -148,7 +148,7 @@ Docker Driver: overlay2
 ## Build Application
 One goal for this project is to build free-standing executables. The standard Go executables are dynamically linked to the Go runtime.
 ```sh
-go build extract.go
+go build -o extract extract.go
 ```
 Go can also produce statically linked applications:
 ```sh
