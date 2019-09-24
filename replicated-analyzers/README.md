@@ -1,13 +1,14 @@
-# **
+# Replicated Container Analyzer
 ## Linux / Kubernetes Information
 
-This project extracts a summary of Kubernetes system status, by parsing key data from Linux process file
-`/proc/cpuinfo`, Linux commands `df` amd `loadavg`. and custom Replicated json files 
-`docker_info.json` and `docker_version.json` summarizing Docker information.
-
 The Replicated Troubleshoot product enables you to collect information from Kubernetes, Docker and the host OS 
-to help analyze and diagnose issues in your cluster. Replicated offers a command that will generate an archive of files 
-and command output collected from your server. This project extracts from this archieve bundle:
+to help analyze and diagnose issues in your cluster.
+
+This project extracts a summary of Kubernetes system status, by parsing key data from Linux process file
+`/proc/cpuinfo`, Linux commands `df` amd `loadavg`. and json files `docker_info.json` and `docker_version.json` 
+summarizing Docker information.
+
+This project extracts this information:
   - Host OS
   - Host OS version
   - Number of cores
@@ -43,13 +44,13 @@ then finding the relevant items in the extracted files using `grep` and `awk`, t
 # tar -xzvf ../**
 echo -n "Host OS Type: "; grep '"OSType"' default/docker/docker_info.json | awk -F'"' '{print $4}'
 OS=$(grep '"OperatingSystem"' default/docker/docker_info.json | awk -F'"' '{print $4}')
-echo -n "  Host OS: "; echo $OS | awk -F' ' '{print $1}'
-echo -n "  OS Version: "; echo $OS | awk -F' ' '{print $2}'
+echo -n "Host OS: "; echo $OS | awk -F' ' '{print $1}'
+echo -n "OS Version: "; echo $OS | awk -F' ' '{print $2}'
 echo -n "cores="; grep processor default/proc/cpuinfo | wc -l
 echo -n "load average (sec): 15 * 60 * "; cat default/commands/loadavg/loadavg | awk -F' ' '{print $3}'
 echo -n "Disk Usage - 1k blocks: "; grep overlay default/commands/df/stdout | awk -F' ' '{print $3}'
 echo -n "Driver: "; grep '"Driver"' default/docker/docker_info.json | awk -F'"' '{print $4}'
-echo -n "Docker OS Verson: "; grep '"Version"' default/docker/docker_version.json | awk -F'"' '{print $4}'
+echo -n "Docker OS Version: "; grep '"Version"' default/docker/docker_version.json | awk -F'"' '{print $4}'
 ```
 ```sh
 Host OS Type: linux
@@ -59,16 +60,16 @@ cores=4
 load average (sec): 15 * 60 * 0.05
 Disk Usage - 1k blocks: 2050392
 Driver: overlay2
-Docker OS Verson: 18.09.6
+Docker OS Version: 18.09.6
 ```
-It is difficult to reliabily distribute shell files for data processing, as different systems provide different shells.
+It is difficult to reliably distribute shell files for data processing, as different systems provide different shells.
 This Bash approach to data extraction also is brittle - it relies on the particular file structure that the data is written in.
 
 ## Go(lang) Data Extraction
 A [more robust solution](https://github.com/helkey/linux/blob/master/replicated-analyzers/README.md) would be to first parse 
-the JSON files, then extract parameters as key/value pairs. Such an approach can be written in a modern programming language such as Go, 
+the JSON files, then extract parameters as key/value pairs. This approach can be written in a modern programming language such as Go, 
 which can be more easily distributed, and which also provides (at least in principal) better error handling, as well as allowing
-better integration with other custom analyis tools.
+better integration with other custom analysis tools.
 ```sh
 go run extract.go supportbundle.tar.gz
 ```
@@ -144,27 +145,35 @@ Docker Version: 18.09.6
 Docker Driver: overlay2
 ```
 
-## Go Program Distribution
+## Build Application
 One goal for this project is to build free-standing executables. The standard Go executables are dynamically linked to the Go runtime.
 ```sh
 go build extract.go
 ```
-Go can also produce statically linked applications, e.g.:
+Go can also produce statically linked applications:
 ```sh
-
-```
-and cross-compiled for other platforms.
-```sh
-```
-
-### Docker
-This analysis application can be packaged up as a Docker executable:
-```
+CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o extract extract.go
 ```
 
 ### AWS / Packer
 This application can also be run on cloud computing hardware such as Amazon Web Services (AWS),
-which can run the previous Docker image, or a custom AMI can be built using [Hashicorp Packer]().
-
+which can run the previous Docker image, or a custom AMI can be built using [Hashicorp Packer](https://www.packer.io/) (not tested).
+```sh
+{
+    "variables": {
+	"aws_access_key": "{{env `AWS_ACCESS_KEY_ID`}}",
+	"aws_secret_key": "{{env `AWS_SECRET_ACCESS_KEY`}}",
+    },
+    "builders": [{
+	"type": "amazon-ebs",
+	"access_key": "{{user `aws_access_key`}}",
+	"secret_key": "{{user `aws_secret_key`}}",
+	"region": "us-west-1",
+	"source_ami_filter": {
+	    "filters": {
+		"virtualization-type": "hvm",
+		"name": "amzn2-ami-hvm-2.0.*-x86_64-gp2",
+...
+```
 
 
